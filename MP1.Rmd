@@ -56,6 +56,8 @@ head(walk.dat)
 
 colnames(walk.dat) <- str_remove(colnames(walk.dat)," \\[pixel\\]| \\[sec\\]")
 head(walk.dat)
+
+unique(walk.dat$subject)
 ```
 # graph (not flipped)
 ```{r chunk 3, include=TRUE}
@@ -110,15 +112,30 @@ head(walk.wide)
 
 # Mean Max Tilt
 ```{r chunk final final, include=TRUE}
-# Calculate the maximum pelvic tilt angle for each subject and speed
+# Calculate the maximum pelvic tilt angle for each subject and each speed
 max_tilt_per_subject_speed <- walk.wide %>%
   group_by(subject, speed) %>%
   summarize(max_tilt = max(theta, na.rm = TRUE))
-# Calculate the mean of the maximum tilt angles for each speed
-mean_max_tilt <- max_tilt_per_subject_speed %>%
-  group_by(speed) %>%
+
+# Calculate the mean of the maximum tilt angles for each subject and each speed
+mean_max_tilt_per_subject <- max_tilt_per_subject_speed %>%
+  group_by(subject, speed) %>%
   summarize(mean_max_tilt = mean(max_tilt, na.rm = TRUE))
+
 # Viewing the result
-print(mean_max_tilt)
+print(mean_max_tilt_per_subject)
+
+```
+
+# Graphing Max Tilt Between Speeds
+```{r chunk tlt}
+
+ggplot(mean_max_tilt_per_subject, aes(x = subject, y = mean_max_tilt, fill = speed)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Mean Maximum Pelvic Tilt Angle by Subject and Speed",
+       x = "Subject",
+       y = "Mean Maximum Pelvic Tilt Angle (degrees)",
+       fill = "Speed") +
+  theme_minimal()
 
 ```
