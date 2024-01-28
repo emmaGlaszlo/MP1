@@ -1,0 +1,124 @@
+---
+title: "MP1"
+author: "Emma Laslo"
+date: "2024-01-28"
+output: html_document
+---
+
+# library set up
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(av)
+library(tidyverse)
+
+```
+
+# DO NOT RUN!!!!!! (this is for movies to avi)
+```{r chunk 2, include=FALSE, eval=FALSE}
+f <- list.files(full.names = T,pattern=".MOV")
+
+#create a place to store images
+dir.create("images")
+
+#for each file, f, breakup the .MOV into the images and build avi files
+for(i in f){
+  if(dir.exists("images")) unlink("images",recursive = T)
+
+  #extract images
+  av_video_images(i,destdir ="images",format="tiff")
+  
+  #list images
+  f.i <- list.files("images",full.names = T)
+  
+  #make the avi from the images from the MOV
+  av_encode_video(f.i,gsub("MOV","avi",basename(i)),codec = "rawvideo")
+}
+```
+
+
+#run after txt file generated
+```{r chunk 3, include=TRUE}
+walk.files <- list.files(pattern="walk_")
+print(walk.files)
+
+walk.dat <- list() #make a list for storing
+for(i in walk.files){
+  walk.i <- read_delim(i,delim="\t") #read data as a tibble
+  met.dat <- unlist(strsplit(i,"_")) #split i for metadata and unlist it
+  speed <- met.dat[2] #get speed
+  subject <- gsub(".txt","",met.dat[3]) #remove ".txt" 
+  walk.dat[[i]] <- walk.i%>%
+    mutate(speed=speed,subject=subject)
+}
+
+walk.dat <- do.call(rbind,walk.dat)
+head(walk.dat)
+
+colnames(walk.dat) <- str_remove(colnames(walk.dat)," \\[pixel\\]| \\[sec\\]")
+head(walk.dat)
+```
+# graph (not flipped)
+```{r chunk 3, include=TRUE}
+walk.dat2 <- walk.dat%>%
+  select(TID,PID,x,y,subject,speed)
+walk.dat2%>%
+  ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)
+
+```
+
+# graph (flipped)
+```{r chunk 3.5, include=TRUE}
+walk.dat2 <- walk.dat2%>%
+  group_by(speed,subject)%>%
+  mutate(y=abs(y-max(y)))
+walk.dat2%>%
+  ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)#grid it with columns = to speed
+
+```
+
+# parts labeled
+```{r chunk 4, include=TRUE}
+walk.dat2 <- walk.dat2%>%
+  mutate(TID=replace(TID, TID==1, "hipR"))%>%
+  mutate(TID=replace(TID, TID==2, "hipC"))%>%
+  mutate(TID=replace(TID, TID==3, "legR"))
+head(walk.dat2)
+```
+
+# pivot wider
+```{r chunk 5, include=TRUE}
+walk.wide <- walk.dat2%>%
+  pivot_wider(names_from=TID,values_from=c("x","y"))
+head(walk.wide)
+```
+
+# Calculating Theta
+```{r chunk final, include=TRUE}
+# Assuming walk.wide is our data frame after using pivot_wider()
+walk.wide <- walk.dat2 %>%
+  pivot_wider(names_from = TID, values_from = c("x", "y"))
+# Calculating the angle theta
+walk.wide <- walk.wide %>%
+  mutate(
+    dx = x_hipR - x_hipC,  # Change in x-coordinate
+    dy = y_hipR - y_hipC,  # Change in y-coordinate
+    theta = atan2(dy, dx) * (180 / pi)  # Calculate the angle in degrees
+  )
+# Viewing the first few rows of the data with theta
+head(walk.wide)
+```
+
+# Mean Max Tilt
+```{r chunk final final, include=TRUE}
+# Calculate the maximum pelvic tilt angle for each subject and speed
+max_tilt_per_subject_speed <- walk.wide %>%
+  group_by(subject, speed) %>%
+  summarize(max_tilt = max(theta, na.rm = TRUE))
+# Calculate the mean of the maximum tilt angles for each speed
+mean_max_tilt <- max_tilt_per_subject_speed %>%
+  group_by(speed) %>%
+  summarize(mean_max_tilt = mean(max_tilt, na.rm = TRUE))
+# Viewing the result
+print(mean_max_tilt)
+
+```
