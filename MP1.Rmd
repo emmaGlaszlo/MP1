@@ -86,6 +86,7 @@ walk.dat2%>%
   ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)#grid it with columns = to speed
 
 ```
+
 # Manipulating Data
 
 ## Correlating TIDs to Regions
