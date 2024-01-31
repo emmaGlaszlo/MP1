@@ -1,9 +1,15 @@
 ---
 title: "MP1"
 author: "Emma Laslo, Jonah Kotzen, Marc Godec"
-date: "2024-01-30"
+date: "2024-01-31"
 output: html_document
+bibliography: BIOL5380.bib
 ---
+
+# Introduction
+
+This project aims to dissect the nuances of pendulum-type walking speeds, pelvic tilt variations, and their correlations with human size and sex. Through data tracking and analysis, this report investigates the theoretical models and actual walking speeds, explores the biomechanical aspects of gait adaptations, and examines how these elements relate to the physical dimensions of the individual. The following sections explore the methodology, analysis, and interpretations of our findings, contributing to the broader understanding of human locomotion.
+
 
 
 ```{r setup, include=FALSE}
@@ -41,10 +47,7 @@ for(i in f){
 }
 ```
 
-
-# Reading in Data
-
-```{r chunk 3, include=TRUE}
+```{r chunk 3, include=FALSE}
 walk.files <- list.files(pattern="walk_")
 print(walk.files)
 
@@ -70,7 +73,7 @@ unique(walk.dat$subject)
 # Graphing Data 
 
 
-## Flipped
+## Three Subjects (Emma, Jonah, Marc) at Fast and Slow Walking Speeds
 ```{r chunk 3.5, include=TRUE}
 walk.dat2 <- walk.dat %>%
   select(TID, PID, x, y, subject, speed) %>%
@@ -149,13 +152,13 @@ ggplot(mean_max_tilt_per_subject, aes(x = subject, y = mean_max_tilt, fill = spe
 ```
 
 
-# Areas to Address
+# Areas to Address (Class Data Included)
 
 ## Reading in Class Data
 
 ```{r chunk class, include=TRUE} 
 
-class_data <- read.csv('/Users/jonahkotzen/Desktop/MP1/class_gait_data.csv')
+class_data <- read.csv('class_gait_data.csv')
 
 # Clean the 'sex' variable and remove NAs
 class_data <- class_data %>%
@@ -257,3 +260,26 @@ ggplot(class_data, aes(x = Mass.in.Kg, y = normal.speed.mean.maximum.pelvic.tilt
 
 # Interpretations
 
+**Comparison of Theoretical and Actual Walking Speeds**:
+
+- The observed actual walking speeds were consistently slower than the theoretical vmax predicted by the inverted pendulum model. This aligns with Usherwood's (2005) discussion on the limitations of walking speed due to biomechanical constraints, such as the simplifications of the model which do not account for the dynamic motion of body parts beyond the legs [@usherwood2005not]. The Froude number, a dimensionless number representing the ratio of centripetal force to gravitational force in the inverted pendulum model, further substantiates that walking efficiencies in practice are lower than theoretical maximums, potentially due to energy conservation strategies that humans have evolved for walking.
+
+**Variation of Actual Pendulum Walking Speed with Human Size and Sex**:
+
+- An inverse relationship was found between size and walking speed, particularly in males, implying that larger individuals may not achieve the same walking speeds as smaller individuals, which Usherwood (2005) suggests could be due to the increased energetic costs associated with moving a larger mass [@usherwood2005not]. For females, this correlation was not as strong, indicating possible biomechanical adaptations that allow for more efficient energy usage despite increased size.
+
+**Changes in Pelvic Tilt with Increased Walking Speeds**:
+
+- Pelvic tilt does not significantly change between normal and fast walking speeds, which suggests a degree of biomechanical optimization. Usherwood (2005) notes that such optimizations are typical in walking, as humans tend to use gait patterns that minimize energy costs [@usherwood2005not]. The proportionality of pelvic tilt increases with speed could reflect an adaptive mechanism to maximize stride length while maintaining stability and energy efficiency, consistent with the predictions of the inverted pendulum model.
+
+**Variation of Pelvic Tilt at Normal Walking Speeds with Human Size and Sex**:
+
+- The data demonstrates a difference in pelvic tilt with body mass that is distinct between sexes. In males, a positive correlation between body mass and pelvic tilt suggests a biomechanical adjustment to accommodate increased load, as discussed by Usherwood (2005), who highlights that different body sizes and shapes necessitate different walking strategies [@usherwood2005not]. In females, however, an increase in body mass correlates with a decrease in pelvic tilt, possibly indicating a different biomechanical strategy to distribute the load more efficiently during walking.
+
+
+# Author Contributions
+- Jonah: Wrote the code & graphed the data
+- Emma: Used MTrackJ to track the data and produce the txt files
+- Marc: Analyzed the figures and wrote the interpretations
+
+# References 
