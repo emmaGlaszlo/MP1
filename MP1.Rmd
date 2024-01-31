@@ -1,7 +1,7 @@
 ---
 title: "MP1"
 author: "Emma Laslo, Jonah Kotzen, Marc Godec"
-date: "2024-01-28"
+date: "2024-01-30"
 output: html_document
 ---
 
@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(av)
 library(tidyverse)
 library(ggplot2)
+
 ```
 
 ```{r chunk 2, include=FALSE, eval=FALSE}
@@ -68,23 +69,19 @@ unique(walk.dat$subject)
 
 # Graphing Data 
 
-## graph (not flipped)
-```{r chunk 3.25, include=TRUE}
-walk.dat2 <- walk.dat%>%
-  select(TID,PID,x,y,subject,speed)
-walk.dat2%>%
-  ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)
 
-```
-
-## graph (flipped)
+## Flipped
 ```{r chunk 3.5, include=TRUE}
-walk.dat2 <- walk.dat2%>%
-  group_by(speed,subject)%>%
-  mutate(y=abs(y-max(y)))
-walk.dat2%>%
-  ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)#grid it with columns = to speed
+walk.dat2 <- walk.dat %>%
+  select(TID, PID, x, y, subject, speed) %>%
+  filter(TID != 3) %>%
+  group_by(speed, subject) %>%
+  mutate(y = abs(y - max(y)))  # Note: Adjust this if you need a different transformation
 
+walk.dat2 %>%
+  ggplot(aes(x, y, color = speed)) +
+  geom_point() +
+  facet_grid(subject ~ .)
 ```
 
 # Manipulating Data
@@ -154,39 +151,109 @@ ggplot(mean_max_tilt_per_subject, aes(x = subject, y = mean_max_tilt, fill = spe
 
 # Areas to Address
 
-## Comparison of Theoretical and Actual Walking Speeds:
-- Analyze how the class-wide vmax (theoretical maximum walking speed calculated using the inverted pendulum model) compares to the actual observed walking speeds from your experiments.
-- Discuss any trends or discrepancies you notice. Are the theoretical speeds higher or lower than the actual speeds? What might explain these differences?
-- Consider factors like the simplifications in the theoretical model (rigid leg, ignoring air resistance, etc.) and how they might impact the results.
+## Reading in Class Data
 
-**Data Needed**:  Compare the class-wide theoretical maximum walking speed (v max) with the actual observed speeds.
-**Code Implementation**: If not already done, calculate vmax using the inverted pendulum model and compare it with the observed speeds. This might involve additional calculations outside of what is currently in your script.
+```{r chunk class, include=TRUE} 
+
+class_data <- read.csv('/Users/jonahkotzen/Desktop/MP1/class_gait_data.csv')
+
+# Clean the 'sex' variable and remove NAs
+class_data <- class_data %>%
+  mutate(sex = as.factor(trimws(sex))) %>%
+  filter(!is.na(sex))
+
+# Check unique values again
+unique(class_data$sex)
+
+
+```
+
+## Comparison of Theoretical and Actual Walking Speeds:
+
+
+```{r walk speeds, include=TRUE}
+
+# Compare vmax to recorded walking speeds
+ggplot(class_data, aes(x = vmax.in.ms..1., y = recorded.walking.in.ms..1.)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Comparison of vmax and Recorded Walking Speeds",
+       x = "Theoretical vmax (m/s)", y = "Recorded Walking Speed (m/s)")
+
+```
 
 ## Patterns Revealed by Calculating the Froude Number:
-- Calculate the Froude number for your walking trials. The Froude number is a dimensionless number defined as Fr = v^2/gL, where v is the walking speed, g is the acceleration due to gravity, and L is the leg length.
-- Analyze if there's a relationship between the Froude number and walking patterns. For example, is there a threshold Froude number beyond which the walking pattern changes significantly?
 
-**Data Needed**: Calculate the Froude number for each walking trial.
-**Code Implementation**: Add a segment in your script to calculate and analyze the Froude numbers. This involves applying the formula Fr = v^2/gL to your data.
+```{r chunk froude, include=TRUE} 
 
+# Plot Froude number against walking speed
+ggplot(class_data, aes(x = Froude.number, y = recorded.walking.in.ms..1.),) +
+  geom_point() +
+  labs(title = "Froude Number vs Walking Speed",
+       x = "Froude Number", y = "Walking Speed (m/s)")
+
+```
+
+## Variation of Actual Pendulum Walking Speed with Human Length and Sex
+
+```{r chunk pend, include=TRUE} 
+
+# Plot walking speed against leg length colored by sex with a best fit line
+ggplot(class_data, aes(x = leg.length.in.m, y = recorded.walking.in.ms..1., color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Walking Speed vs Leg Length by Sex",
+       x = "Leg Length (m)", y = "Walking Speed (m/s)")
+```
 ## Variation of Actual Pendulum Walking Speed with Human Size and Sex
-- Examine how walking speed varies with the size (height, leg length) and sex of the participants. Are there noticeable differences?
-- Discuss these findings in the context of biomechanics. Does a larger size correspond to faster or slower walking speeds? How does sex impact walking speed?
 
-**Data Needed**: Relationship between walking speed, human size (height, leg length), and sex.
-**Code Implementation**: You might need to incorporate additional data (e.g., height, leg length) into your dataset and perform analyses to see how these factors correlate with walking speed.
+```{r chunk pends, include=TRUE} 
+
+# Plot walking speed against leg length colored by sex with a best fit line
+ggplot(class_data, aes(x = Mass.in.Kg, y = recorded.walking.in.ms..1., color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Walking Speed vs Mass by Sex",
+       x = "Mass (kg)", y = "Walking Speed (m/s)")
+
+```
+
 
 ## Changes in Pelvic Tilt with Increased Walking Speeds
-- Using your data on pelvic tilt angles at different speeds, analyze how pelvic tilt changes as walking speed increases.
-- Discuss the biomechanical basis for these changes. Why does the body need to increase pelvic tilt at higher speeds? Consider the role of stride length, balance, and efficiency.
+```{r pelvtilt, include=TRUE}
 
-**Data Needed**: How pelvic tilt changes with walking speed.
-**Code Implementation** Use your current data on pelvic tilt angles across different speeds. Perform statistical analysis or visualization to show how pelvic tilt changes with speed.
+ggplot(class_data, aes(x = normal.speed.mean.maximum.pelvic.tilt.angle, y = fast.speed.mean.maximum.pelvic.tilt.angle, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Pelvic Tilt Angle at Different Speeds by Sex",
+       x = "Normal-Speed Mean Maximum Pelvic Tilt Angle (degrees)",
+       y = "Fast-Speed Mean Maximum Pelvic Tilt Angle (degrees)")
+
+
+
+```
 
 ## Variation of Pelvic Tilt at Normal Walking Speeds with Human Size and Sex:
 
-- Analyze if there's a variation in pelvic tilt at comfortable walking speeds based on the size and sex of the participants.
-- Discuss how and why these factors might influence pelvic tilt. Does a larger body size or different sex correlate with more or less pelvic tilt? What might be the biomechanical reasons for this?
+```{r pelvtiltvar, include=TRUE}
 
-**Data Needed**: Relationship between pelvic tilt at comfortable speeds, body size, and sex.
-**Code Implementation**: Similar to walking speed, you may need additional data on body size. Analyze how these factors influence pelvic tilt at normal speeds.
+# Create the first plot for normal walking speed vs. leg length
+ggplot(class_data, aes(x = leg.length.in.m, y = normal.speed.mean.maximum.pelvic.tilt.angle, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Normal-Speed Pelvic Tilt vs Leg Length by Sex",
+       x = "Leg Length (m)", y = "Normal-Speed Mean Maximum Pelvic Tilt Angle (degrees)") +
+  theme(legend.position="none") # Hide legend to avoid duplication
+
+# Create the second plot for normal walking speed vs. mass in Kg
+ggplot(class_data, aes(x = Mass.in.Kg, y = normal.speed.mean.maximum.pelvic.tilt.angle, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Normal-Speed Pelvic Tilt vs Mass by Sex",
+       x = "Mass in Kg", y = "Normal-Speed Mean Maximum Pelvic Tilt Angle (degrees)")
+
+```
+
+
+# Interpretations
+
