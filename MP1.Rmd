@@ -1,20 +1,32 @@
 ---
 title: "MP1"
-author: "Emma Laslo"
-date: "2024-01-28"
+author: "Emma Laslo, Jonah Kotzen, Marc Godec"
+date: "2024-01-31"
 output: html_document
+bibliography: BIOL5380.bib
 ---
 
-# library set up
+# Introduction
+
+This project aims to dissect the nuances of pendulum-type walking speeds, pelvic tilt variations, and their correlations with human size and sex. Through data tracking and analysis, this report investigates the theoretical models and actual walking speeds, explores the biomechanical aspects of gait adaptations, and examines how these elements relate to the physical dimensions of the individual. The following sections explore the methodology, analysis, and interpretations of our findings, contributing to the broader understanding of human locomotion.
+
+
+
 ```{r setup, include=FALSE}
+
+# library set up
+
 knitr::opts_chunk$set(echo = TRUE)
 library(av)
 library(tidyverse)
+library(ggplot2)
 
 ```
 
-# DO NOT RUN!!!!!! (this is for movies to avi)
 ```{r chunk 2, include=FALSE, eval=FALSE}
+
+# DO NOT RUN!!!!!! (this is for movies to avi)
+
 f <- list.files(full.names = T,pattern=".MOV")
 
 #create a place to store images
@@ -35,9 +47,7 @@ for(i in f){
 }
 ```
 
-
-#run after txt file generated
-```{r chunk 3, include=TRUE}
+```{r chunk 3, include=FALSE}
 walk.files <- list.files(pattern="walk_")
 print(walk.files)
 
@@ -59,26 +69,27 @@ head(walk.dat)
 
 unique(walk.dat$subject)
 ```
-# graph (not flipped)
-```{r chunk 3, include=TRUE}
-walk.dat2 <- walk.dat%>%
-  select(TID,PID,x,y,subject,speed)
-walk.dat2%>%
-  ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)
 
-```
+# Graphing Data 
 
-# graph (flipped)
+
+## Three Subjects (Emma, Jonah, Marc) at Fast and Slow Walking Speeds
 ```{r chunk 3.5, include=TRUE}
-walk.dat2 <- walk.dat2%>%
-  group_by(speed,subject)%>%
-  mutate(y=abs(y-max(y)))
-walk.dat2%>%
-  ggplot(aes(x,y,col=speed))+geom_point()+facet_grid(subject~.)#grid it with columns = to speed
+walk.dat2 <- walk.dat %>%
+  select(TID, PID, x, y, subject, speed) %>%
+  filter(TID != 3) %>%
+  group_by(speed, subject) %>%
+  mutate(y = abs(y - max(y)))  # Note: Adjust this if you need a different transformation
 
+walk.dat2 %>%
+  ggplot(aes(x, y, color = speed)) +
+  geom_point() +
+  facet_grid(subject ~ .)
 ```
 
-# parts labeled
+# Manipulating Data
+
+## Correlating TIDs to Regions
 ```{r chunk 4, include=TRUE}
 walk.dat2 <- walk.dat2%>%
   mutate(TID=replace(TID, TID==1, "hipR"))%>%
@@ -87,14 +98,14 @@ walk.dat2 <- walk.dat2%>%
 head(walk.dat2)
 ```
 
-# pivot wider
+## Pivoting Wider
 ```{r chunk 5, include=TRUE}
 walk.wide <- walk.dat2%>%
   pivot_wider(names_from=TID,values_from=c("x","y"))
 head(walk.wide)
 ```
 
-# Calculating Theta
+## Calculating Pelvic Tilt (Theta)
 ```{r chunk final, include=TRUE}
 # Assuming walk.wide is our data frame after using pivot_wider()
 walk.wide <- walk.dat2 %>%
@@ -110,7 +121,7 @@ walk.wide <- walk.wide %>%
 head(walk.wide)
 ```
 
-# Mean Max Tilt
+## Calculating Mean Max Tilt
 ```{r chunk final final, include=TRUE}
 # Calculate the maximum pelvic tilt angle for each subject and each speed
 max_tilt_per_subject_speed <- walk.wide %>%
@@ -127,7 +138,7 @@ print(mean_max_tilt_per_subject)
 
 ```
 
-# Graphing Max Tilt Between Speeds
+## Graphing Max Tilt Between Speeds
 ```{r chunk tlt}
 
 ggplot(mean_max_tilt_per_subject, aes(x = subject, y = mean_max_tilt, fill = speed)) +
@@ -139,3 +150,136 @@ ggplot(mean_max_tilt_per_subject, aes(x = subject, y = mean_max_tilt, fill = spe
   theme_minimal()
 
 ```
+
+
+# Areas to Address (Class Data Included)
+
+## Reading in Class Data
+
+```{r chunk class, include=TRUE} 
+
+class_data <- read.csv('class_gait_data.csv')
+
+# Clean the 'sex' variable and remove NAs
+class_data <- class_data %>%
+  mutate(sex = as.factor(trimws(sex))) %>%
+  filter(!is.na(sex))
+
+# Check unique values again
+unique(class_data$sex)
+
+
+```
+
+## Comparison of Theoretical and Actual Walking Speeds:
+
+
+```{r walk speeds, include=TRUE}
+
+# Compare vmax to recorded walking speeds
+ggplot(class_data, aes(x = vmax.in.ms..1., y = recorded.walking.in.ms..1.)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Comparison of vmax and Recorded Walking Speeds",
+       x = "Theoretical vmax (m/s)", y = "Recorded Walking Speed (m/s)")
+
+```
+
+## Patterns Revealed by Calculating the Froude Number:
+
+```{r chunk froude, include=TRUE} 
+
+# Plot Froude number against walking speed
+ggplot(class_data, aes(x = Froude.number, y = recorded.walking.in.ms..1.),) +
+  geom_point() +
+  labs(title = "Froude Number vs Walking Speed",
+       x = "Froude Number", y = "Walking Speed (m/s)")
+
+```
+
+## Variation of Actual Pendulum Walking Speed with Human Length and Sex
+
+```{r chunk pend, include=TRUE} 
+
+# Plot walking speed against leg length colored by sex with a best fit line
+ggplot(class_data, aes(x = leg.length.in.m, y = recorded.walking.in.ms..1., color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Walking Speed vs Leg Length by Sex",
+       x = "Leg Length (m)", y = "Walking Speed (m/s)")
+```
+## Variation of Actual Pendulum Walking Speed with Human Size and Sex
+
+```{r chunk pends, include=TRUE} 
+
+# Plot walking speed against leg length colored by sex with a best fit line
+ggplot(class_data, aes(x = Mass.in.Kg, y = recorded.walking.in.ms..1., color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Walking Speed vs Mass by Sex",
+       x = "Mass (kg)", y = "Walking Speed (m/s)")
+
+```
+
+
+## Changes in Pelvic Tilt with Increased Walking Speeds
+```{r pelvtilt, include=TRUE}
+
+ggplot(class_data, aes(x = normal.speed.mean.maximum.pelvic.tilt.angle, y = fast.speed.mean.maximum.pelvic.tilt.angle, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Pelvic Tilt Angle at Different Speeds by Sex",
+       x = "Normal-Speed Mean Maximum Pelvic Tilt Angle (degrees)",
+       y = "Fast-Speed Mean Maximum Pelvic Tilt Angle (degrees)")
+
+
+
+```
+
+## Variation of Pelvic Tilt at Normal Walking Speeds with Human Size and Sex:
+
+```{r pelvtiltvar, include=TRUE}
+
+# Create the first plot for normal walking speed vs. leg length
+ggplot(class_data, aes(x = leg.length.in.m, y = normal.speed.mean.maximum.pelvic.tilt.angle, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Normal-Speed Pelvic Tilt vs Leg Length by Sex",
+       x = "Leg Length (m)", y = "Normal-Speed Mean Maximum Pelvic Tilt Angle (degrees)") +
+  theme(legend.position="none") # Hide legend to avoid duplication
+
+# Create the second plot for normal walking speed vs. mass in Kg
+ggplot(class_data, aes(x = Mass.in.Kg, y = normal.speed.mean.maximum.pelvic.tilt.angle, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Normal-Speed Pelvic Tilt vs Mass by Sex",
+       x = "Mass in Kg", y = "Normal-Speed Mean Maximum Pelvic Tilt Angle (degrees)")
+
+```
+
+
+# Interpretations
+
+**Comparison of Theoretical and Actual Walking Speeds**:
+
+- The observed actual walking speeds were consistently slower than the theoretical vmax predicted by the inverted pendulum model. This aligns with Usherwood's (2005) discussion on the limitations of walking speed due to biomechanical constraints, such as the simplifications of the model which do not account for the dynamic motion of body parts beyond the legs [@usherwood2005not]. The Froude number, a dimensionless number representing the ratio of centripetal force to gravitational force in the inverted pendulum model, further substantiates that walking efficiencies in practice are lower than theoretical maximums, potentially due to energy conservation strategies that humans have evolved for walking.
+
+**Variation of Actual Pendulum Walking Speed with Human Size and Sex**:
+
+- An inverse relationship was found between size and walking speed, particularly in males, implying that larger individuals may not achieve the same walking speeds as smaller individuals, which Usherwood (2005) suggests could be due to the increased energetic costs associated with moving a larger mass [@usherwood2005not]. For females, this correlation was not as strong, indicating possible biomechanical adaptations that allow for more efficient energy usage despite increased size.
+
+**Changes in Pelvic Tilt with Increased Walking Speeds**:
+
+- Pelvic tilt does not significantly change between normal and fast walking speeds, which suggests a degree of biomechanical optimization. Usherwood (2005) notes that such optimizations are typical in walking, as humans tend to use gait patterns that minimize energy costs [@usherwood2005not]. The proportionality of pelvic tilt increases with speed could reflect an adaptive mechanism to maximize stride length while maintaining stability and energy efficiency, consistent with the predictions of the inverted pendulum model.
+
+**Variation of Pelvic Tilt at Normal Walking Speeds with Human Size and Sex**:
+
+- The data demonstrates a difference in pelvic tilt with body mass that is distinct between sexes. In males, a positive correlation between body mass and pelvic tilt suggests a biomechanical adjustment to accommodate increased load, as discussed by Usherwood (2005), who highlights that different body sizes and shapes necessitate different walking strategies [@usherwood2005not]. In females, however, an increase in body mass correlates with a decrease in pelvic tilt, possibly indicating a different biomechanical strategy to distribute the load more efficiently during walking.
+
+
+# Author Contributions
+- Jonah: Wrote the code & graphed the data
+- Emma: Used MTrackJ to track the data and produce the txt files
+- Marc: Analyzed the figures and wrote the interpretations
+
+# References 
